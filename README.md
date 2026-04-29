@@ -79,13 +79,14 @@ Website ini dibangun dengan tujuan untuk:
 ---
 ## Tampilan Admin
 
-<img width="1829" height="891" alt="image" src="https://github.com/user-attachments/assets/9ad2ba81-0c20-4f47-9d0a-55db32ab1fc2" />
+
+<img width="940" height="456" alt="image" src="https://github.com/user-attachments/assets/f37ec4e2-b938-493b-a53a-73d9e3ff17e7" />
 
 
-<img width="1824" height="890" alt="image" src="https://github.com/user-attachments/assets/812a75cf-7111-492e-b4a7-a87435659f72" />
+<img width="940" height="460" alt="image" src="https://github.com/user-attachments/assets/912c54cb-b60f-4679-8aab-e5086d1991f8" />
 
 
-<img width="1824" height="884" alt="image" src="https://github.com/user-attachments/assets/898cf2ad-a343-4216-b22b-c81198aba62f" />
+<img width="940" height="456" alt="image" src="https://github.com/user-attachments/assets/8f0572b9-6e05-4f68-97d3-20a4fab822dd" />
 
 
 <img width="940" height="460" alt="image" src="https://github.com/user-attachments/assets/39b99872-520f-466e-963c-147995a575cc" />
