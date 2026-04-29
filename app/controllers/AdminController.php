@@ -12,73 +12,78 @@ require_once __DIR__ . '/../models/HargaPemancingan.php';
 require_once __DIR__ . '/../models/HargaSewa.php';
 require_once __DIR__ . '/../models/User.php';
 
-class AdminController extends Controller {
-    
-    public function __construct() {
+class AdminController extends Controller
+{
+
+    public function __construct()
+    {
         parent::__construct();
         $this->requireAdmin();
     }
-    
+
     // ========== DASHBOARD ==========
-    public function dashboard() {
+    public function dashboard()
+    {
         require_once __DIR__ . '/../models/Galeri.php';
         require_once __DIR__ . '/../models/User.php';
         require_once __DIR__ . '/../models/Ulasan.php';
         require_once __DIR__ . '/../models/FotoUser.php';
-        
+
         $galeriModel = new Galeri($this->conn);
         $userModel = new User($this->conn);
         $ulasanModel = new Ulasan($this->conn);
         $fotoUserModel = new FotoUser($this->conn);
-        
+
         $total_galeri = $galeriModel->count();
         $total_user = $userModel->count();
         $total_ulasan_pending = $ulasanModel->countPending();
         $total_ulasan_aktif = $ulasanModel->countActive();
         $total_foto_pending = $fotoUserModel->countPending();
-        
+
         $flash = $this->getFlash();
-        $active_menu = 'dashboard'; 
-        
+        $active_menu = 'dashboard';
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/dashboard.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
+
     // ========== KELOLA GALERI ==========
-    public function galeri() {
+    public function galeri()
+    {
         require_once __DIR__ . '/../models/Galeri.php';
         require_once __DIR__ . '/../models/FotoUser.php';
-        
+
         $galeriModel = new Galeri($this->conn);
         $fotoUserModel = new FotoUser($this->conn);
-        
+
         $galeri = $galeriModel->getAll();
         $foto_user_menunggu = $fotoUserModel->getPending();   // status 'menunggu'
         $foto_user_disetujui = $fotoUserModel->getApproved(); // status 'disetujui'
-        
+
         $page_title = 'Kelola Galeri';
         $page_icon = 'fas fa-images';
         $active_menu = 'galeri';
-        
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/galeri/index.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    public function galeriTambah() {
+    public function galeriTambah()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $judul = $this->sanitize($_POST['judul'] ?? '');
             $kategori = $_POST['kategori'] ?? 'Suasana';
             $deskripsi = $this->sanitize($_POST['deskripsi'] ?? '');
-            
+
             // Validasi upload gambar
             $upload = $this->uploadGambar($_FILES['gambar'] ?? [], 'galeri');
-            
+
             if (!$upload['success']) {
                 $this->setFlash('danger', $upload['message']);
                 $this->redirect(BASE_URL . '/index.php?c=admin&m=galeriTambah');
             }
-            
+
             // Simpan ke database
             $galeriModel = new Galeri($this->conn);
             $data = [
@@ -87,7 +92,7 @@ class AdminController extends Controller {
                 'gambar_url' => $upload['filename'],
                 'deskripsi' => $deskripsi
             ];
-            
+
             if ($galeriModel->create($data)) {
                 $this->setFlash('success', 'Foto berhasil ditambahkan! ✅');
             } else {
@@ -95,27 +100,28 @@ class AdminController extends Controller {
             }
             $this->redirect(BASE_URL . '/index.php?c=admin&m=galeri');
         }
-        
+
         // Tampilkan form tambah
         $page_title = 'Tambah Foto Galeri';
         $page_icon = 'fas fa-plus';
         $active_menu = 'galeri';
-        
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/galeri/tambah.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function galeriEdit() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function galeriEdit()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $galeriModel = new Galeri($this->conn);
         $data = $galeriModel->getById($id);
-        
+
         if (!$data) {
             $this->setFlash('danger', 'Data tidak ditemukan.');
             $this->redirect($this->baseUrl . '/index.php?c=admin&m=galeri');
         }
-        
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateData = [
                 'judul' => $this->sanitize($_POST['judul'] ?? ''),
@@ -123,21 +129,22 @@ class AdminController extends Controller {
                 'gambar_url' => $data['gambar_url'],
                 'deskripsi' => $this->sanitize($_POST['deskripsi'] ?? '')
             ];
-            
+
             // Jika ada upload gambar baru
             if (!empty($_FILES['gambar']['name'])) {
                 $upload = $this->uploadGambar($_FILES['gambar'], 'galeri');
                 if ($upload['success']) {
                     // Hapus gambar lama
                     $oldFile = __DIR__ . '/../public/' . $data['gambar_url'];
-                    if (file_exists($oldFile)) unlink($oldFile);
+                    if (file_exists($oldFile))
+                        unlink($oldFile);
                     $updateData['gambar_url'] = $upload['filename'];
                 } else {
                     $this->setFlash('danger', $upload['message']);
                     $this->redirect($this->baseUrl . '/index.php?c=admin&m=galeriEdit&id=' . $id);
                 }
             }
-            
+
             if ($galeriModel->update($id, $updateData)) {
                 $this->setFlash('success', 'Foto berhasil diupdate! ✅');
             } else {
@@ -145,16 +152,17 @@ class AdminController extends Controller {
             }
             $this->redirect($this->baseUrl . '/index.php?c=admin&m=galeri');
         }
-        
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/galeri/edit.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function galeriHapus() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function galeriHapus()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $galeriModel = new Galeri($this->conn);
-        
+
         if ($galeriModel->delete($id)) {
             $this->setFlash('success', 'Foto berhasil dihapus!');
         } else {
@@ -162,12 +170,13 @@ class AdminController extends Controller {
         }
         $this->redirect($this->baseUrl . '/index.php?c=admin&m=galeri');
     }
-    
+
     // ========== KELOLA FOTO USER ==========
-    public function fotoUserApprove() {
-        $id = (int)($_GET['id'] ?? 0);
+    public function fotoUserApprove()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $fotoUserModel = new FotoUser($this->conn);
-        
+
         if ($fotoUserModel->approve($id)) {
             $this->setFlash('success', 'Foto berhasil disetujui!');
         } else {
@@ -175,11 +184,12 @@ class AdminController extends Controller {
         }
         $this->redirect(BASE_URL . '/index.php?c=admin&m=galeri');
     }
-    
-    public function fotoUserReject() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function fotoUserReject()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $fotoUserModel = new FotoUser($this->conn);
-        
+
         if ($fotoUserModel->reject($id)) {
             $this->setFlash('success', 'Foto berhasil ditolak.');
         } else {
@@ -187,11 +197,12 @@ class AdminController extends Controller {
         }
         $this->redirect(BASE_URL . '/index.php?c=admin&m=galeri');
     }
-    
-    public function fotoUserHapus() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function fotoUserHapus()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $fotoUserModel = new FotoUser($this->conn);
-        
+
         if ($fotoUserModel->delete($id)) {
             $this->setFlash('success', 'Foto berhasil dihapus!');
         } else {
@@ -199,25 +210,27 @@ class AdminController extends Controller {
         }
         $this->redirect(BASE_URL . '/index.php?c=admin&m=galeri');
     }
-    
+
     // ========== KELOLA ULASAN ==========
-    public function ulasan() {
+    public function ulasan()
+    {
         require_once __DIR__ . '/../models/Ulasan.php';
         $ulasanModel = new Ulasan($this->conn);
         $ulasan = $ulasanModel->getAll();
-        
+
         $flash = $this->getFlash();
-        $active_menu = 'ulasan'; 
-        
+        $active_menu = 'ulasan';
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/ulasan/index.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function ulasanApprove() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function ulasanApprove()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $ulasanModel = new Ulasan($this->conn);
-        
+
         if ($ulasanModel->approve($id)) {
             $this->setFlash('success', 'Ulasan berhasil disetujui!');
         } else {
@@ -225,11 +238,12 @@ class AdminController extends Controller {
         }
         $this->redirect($this->baseUrl . '/index.php?c=admin&m=ulasan');
     }
-    
-    public function ulasanReject() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function ulasanReject()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $ulasanModel = new Ulasan($this->conn);
-        
+
         if ($ulasanModel->reject($id)) {
             $this->setFlash('success', 'Ulasan berhasil ditolak.');
         } else {
@@ -237,11 +251,12 @@ class AdminController extends Controller {
         }
         $this->redirect($this->baseUrl . '/index.php?c=admin&m=ulasan');
     }
-    
-    public function ulasanHapus() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function ulasanHapus()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $ulasanModel = new Ulasan($this->conn);
-        
+
         if ($ulasanModel->delete($id)) {
             $this->setFlash('success', 'Ulasan berhasil dihapus!');
         } else {
@@ -249,32 +264,34 @@ class AdminController extends Controller {
         }
         $this->redirect($this->baseUrl . '/index.php?c=admin&m=ulasan');
     }
-    
+
     // ========== KELOLA FASILITAS ==========
-    public function fasilitas() {
+    public function fasilitas()
+    {
         require_once __DIR__ . '/../models/Fasilitas.php';
         $fasilitasModel = new Fasilitas($this->conn);
         $fasilitas = $fasilitasModel->getAll();
-        
+
         $flash = $this->getFlash();
-        $active_menu = 'fasilitas'; 
-        
+        $active_menu = 'fasilitas';
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/fasilitas/index.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function fasilitasTambah() {
+
+    public function fasilitasTambah()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
                 'nama' => $this->sanitize($_POST['nama_fasilitas'] ?? ''),
                 'icon' => $this->sanitize($_POST['icon'] ?? 'fas fa-circle'),
                 'keterangan' => $this->sanitize($_POST['keterangan'] ?? ''),
-                'urutan' => (int)($_POST['urutan'] ?? 0)
+                'urutan' => (int) ($_POST['urutan'] ?? 0)
             ];
-            
+
             $fasilitasModel = new Fasilitas($this->conn);
-            
+
             if ($fasilitasModel->create($data)) {
                 $this->setFlash('success', 'Fasilitas berhasil ditambahkan! ✅');
             } else {
@@ -282,30 +299,31 @@ class AdminController extends Controller {
             }
             $this->redirect($this->baseUrl . '/index.php?c=admin&m=fasilitas');
         }
-        
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/fasilitas/tambah.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function fasilitasEdit() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function fasilitasEdit()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $fasilitasModel = new Fasilitas($this->conn);
         $data = $fasilitasModel->getById($id);
-        
+
         if (!$data) {
             $this->setFlash('danger', 'Data tidak ditemukan.');
             $this->redirect($this->baseUrl . '/index.php?c=admin&m=fasilitas');
         }
-        
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateData = [
                 'nama' => $this->sanitize($_POST['nama_fasilitas'] ?? ''),
                 'icon' => $this->sanitize($_POST['icon'] ?? ''),
                 'keterangan' => $this->sanitize($_POST['keterangan'] ?? ''),
-                'urutan' => (int)($_POST['urutan'] ?? 0)
+                'urutan' => (int) ($_POST['urutan'] ?? 0)
             ];
-            
+
             if ($fasilitasModel->update($id, $updateData)) {
                 $this->setFlash('success', 'Fasilitas berhasil diupdate! ✅');
             } else {
@@ -313,16 +331,17 @@ class AdminController extends Controller {
             }
             $this->redirect($this->baseUrl . '/index.php?c=admin&m=fasilitas');
         }
-        
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/fasilitas/edit.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function fasilitasHapus() {
-        $id = (int)($_GET['id'] ?? 0);
+
+    public function fasilitasHapus()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
         $fasilitasModel = new Fasilitas($this->conn);
-        
+
         if ($fasilitasModel->delete($id)) {
             $this->setFlash('success', 'Fasilitas berhasil dihapus!');
         } else {
@@ -330,60 +349,73 @@ class AdminController extends Controller {
         }
         $this->redirect($this->baseUrl . '/index.php?c=admin&m=fasilitas');
     }
-    
+
     // ========== KELOLA HARGA ==========
-    public function harga() {
+    public function harga()
+    {
         require_once __DIR__ . '/../models/HargaKolam.php';
         require_once __DIR__ . '/../models/HargaPemancingan.php';
         require_once __DIR__ . '/../models/HargaSewa.php';
-        
+
         $hargaKolamModel = new HargaKolam($this->conn);
         $hargaPemancinganModel = new HargaPemancingan($this->conn);
         $hargaSewaModel = new HargaSewa($this->conn);
-        
+
         $harga_kolam = $hargaKolamModel->getAll();
         $harga_pemancingan = $hargaPemancinganModel->getAll();
         $harga_sewa = $hargaSewaModel->getAll();
-        
-        $flash = $this->getFlash();
-        $active_menu = 'harga'; 
-        
+
+        $active_menu = 'harga';
+
         require_once __DIR__ . '/../views/layouts/admin_header.php';
         require_once __DIR__ . '/../views/admin/harga/index.php';
         require_once __DIR__ . '/../views/layouts/admin_footer.php';
     }
-    
-    public function hargaUpdate() {
+
+    public function hargaUpdate()
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect($this->baseUrl . '/index.php?c=admin&m=harga');
         }
-        
-        $hargaKolamModel = new HargaKolam($this->conn);
-        $hargaPemancinganModel = new HargaPemancingan($this->conn);
-        $hargaSewaModel = new HargaSewa($this->conn);
-        
-        // Update harga kolam
-        if (isset($_POST['harga_kolam'])) {
-            foreach ($_POST['harga_kolam'] as $id => $harga) {
-                $hargaKolamModel->update($id, (int)$harga);
-            }
+
+        $table = $_POST['table'] ?? '';
+        $id = (int) ($_POST['id'] ?? 0);
+        $harga = $_POST['harga'] ?? '';
+
+        // Validasi
+        if (empty($table) || $id <= 0) {
+            $this->setFlash('danger', 'Data tidak valid! Table: ' . $table . ', ID: ' . $id);
+            $this->redirect($this->baseUrl . '/index.php?c=admin&m=harga');
         }
-        
-        // Update harga pemancingan
-        if (isset($_POST['harga_pemancingan'])) {
-            foreach ($_POST['harga_pemancingan'] as $id => $harga) {
-                $hargaPemancinganModel->update($id, $harga);
-            }
+
+        // Update berdasarkan tabel yang dikirim form
+        switch ($table) {
+            case 'harga_kolam':
+                $model = new HargaKolam($this->conn);
+                $harga = (int) $harga; // Harga kolam pasti angka
+                break;
+
+            case 'harga_pemancingan':
+                $model = new HargaPemancingan($this->conn);
+                break;
+
+            case 'harga_sewa':
+                $model = new HargaSewa($this->conn);
+                break;
+
+            default:
+                $this->setFlash('danger', 'Tabel tidak dikenali.');
+                $this->redirect($this->baseUrl . '/index.php?c=admin&m=harga');
+                return;
         }
-        
-        // Update harga sewa
-        if (isset($_POST['harga_sewa'])) {
-            foreach ($_POST['harga_sewa'] as $id => $harga) {
-                $hargaSewaModel->update($id, $harga);
-            }
+
+        // Jalankan update
+        if ($model->update($id, $harga)) {
+            $this->setFlash('success', 'Harga berhasil diupdate! ✅');
+        } else {
+            $this->setFlash('danger', 'Gagal mengupdate harga.');
         }
-        
-        $this->setFlash('success', 'Harga berhasil diupdate! ✅');
+
         $this->redirect($this->baseUrl . '/index.php?c=admin&m=harga');
     }
 }
